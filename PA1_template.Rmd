@@ -8,18 +8,134 @@ output:
 
 ## Loading and preprocessing the data
 
+```{r}
+data <- read.csv("activity.csv")
+str(data)
+```
+
 
 
 ## What is mean total number of steps taken per day?
 
+```{r}
+stepsperday <- tapply(data$steps, data$date, sum)
+hist(stepsperday, breaks = 10)
+```  
+
+Mean of the total number of steps taken per day:
+```{r}
+mean1 <- mean(stepsperday, na.rm = T)
+mean1
+```
+Median of the total number of steps taken per day:
+```{r}
+median1 <- median(stepsperday, na.rm = T)
+median1
+```
 
 
-## What is the average daily activity pattern?
 
+## What is the average daily activity pattern?  
+
+1. Make a time series plotof the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)  
+
+```{r, message=FALSE}
+library(dplyr)
+```
+
+```{r}
+
+avgsteps<-data %>% select(steps,interval) %>% group_by(interval) %>% summarise(average_steps = mean(steps, na.rm = T)) 
+
+plot(avgsteps$interval,avgsteps$average_steps, type = "l", xlab = "Interval", ylab = " Average Daily Steps", main = "Average Daily Activity Pattern")
+```
+
+2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps? 
+
+```{r}
+filter(avgsteps, average_steps == max(average_steps))
+```
 
 
 ## Imputing missing values
 
 
+```{r, message=FALSE}
+library(dplyr)
+```
 
-## Are there differences in activity patterns between weekdays and weekends?
+Checking how many missing values are there:  
+```{r}
+colSums(is.na(data))
+
+```
+Imputing missing values with mean for the corresponding day and save it as data2
+```{r}
+data2<-data %>% group_by(interval) %>%
+mutate(steps=ifelse(is.na(steps),mean(steps,na.rm=TRUE),steps))
+```
+
+Checking for missign values now:
+
+```{r}
+colSums(is.na(data2))
+
+```
+
+Histogram of total number of steps per day
+
+```{r}
+stepsperday2 <- tapply(data2$steps, data2$date, sum)
+hist(stepsperday2, breaks = 10)
+```
+  
+Mean of the total number of steps taken per day:
+```{r}
+mean2 <- mean(stepsperday2, na.rm = T)
+mean2
+```
+Median of the total number of steps taken per day:
+```{r}
+median2 <- median(stepsperday2, na.rm = T)
+median2
+```
+
+Affects on the mean and median after imputing missing values:  
+  
+Mean before imputing: `r mean1`  
+
+Mean after imputing: `r mean2`
+
+Median before imputing: `r median1`  
+
+Median after imputing: `r median2`  
+
+We can see that the mean remained exactly the same which is as expected because we used the mean by interval to replace the missing values. On the other hand theres a very small change in the median in fact mean and median are same now.  
+
+
+
+## Are there differences in activity patterns between weekdays and weekends?  
+
+```{r}
+library(ggplot2)
+```
+
+Creating a new factor variable in the dataset with two levels – “weekday” and “weekend”  
+```{r}
+data2$date <- as.Date(data2$date)
+data2$week <- ifelse(weekdays(data2$date) %in% c("Saturday", "Sunday"), "weekend", "weekday")
+```
+
+Making a panel plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).  
+ 
+```{r}
+avgsteps2<-data2 %>% select(steps,interval, week) %>% group_by(interval,week) %>% summarise(average_steps = mean(steps, na.rm = T)) 
+
+p <- ggplot(avgsteps2, aes(x=interval, y=average_steps)) +
+  geom_line() + 
+    facet_grid(week~.)
+p
+
+```
+
+
